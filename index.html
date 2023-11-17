@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+
+<!--  -->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Welcome to HealJai</title>
+
+    <!-- update the version number as needed -->
+    <script defer src="/__/firebase/10.6.0/firebase-app-compat.js"></script>
+    <!-- include only the Firebase features as you need -->
+    <script defer src="/__/firebase/10.6.0/firebase-auth-compat.js"></script>
+    <script defer src="/__/firebase/10.6.0/firebase-database-compat.js"></script>
+    <script defer src="/__/firebase/10.6.0/firebase-firestore-compat.js"></script>
+    <script defer src="/__/firebase/10.6.0/firebase-functions-compat.js"></script>
+    <script defer src="/__/firebase/10.6.0/firebase-messaging-compat.js"></script>
+    <script defer src="/__/firebase/10.6.0/firebase-storage-compat.js"></script>
+    <script defer src="/__/firebase/10.6.0/firebase-analytics-compat.js"></script>
+    <script defer src="/__/firebase/10.6.0/firebase-remote-config-compat.js"></script>
+    <script defer src="/__/firebase/10.6.0/firebase-performance-compat.js"></script>
+    <!-- 
+      initialize the SDK after all desired features are loaded, set useEmulator to false
+      to avoid connecting the SDK to running emulators.
+    -->
+    <script defer src="/__/firebase/init.js?useEmulator=true"></script>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>HealJai chat</title>
+    <style>
+      body { margin: 0; padding-bottom: 3rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    
+      #form { background: rgba(0, 0, 0, 0.15); padding: 0.25rem; position: fixed; bottom: 0; left: 0; right: 0; display: flex; height: 3rem; box-sizing: border-box; backdrop-filter: blur(10px); }
+      #input { border: none; padding: 0 1rem; flex-grow: 1; border-radius: 2rem; margin: 0.25rem; }
+      #input:focus { outline: none; }
+      #form > button { background: #333; border: none; padding: 0 1rem; margin: 0.25rem; border-radius: 3px; outline: none; color: #fff; }
+    
+      #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages > li { padding: 0.5rem 1rem; }
+      #messages > li:nth-child(odd) { background: #efefef; }
+    </style>
+  </head>
+
+    
+     
+      <body>
+        <ul id="messages"></ul>
+        <form id="form" action="">
+          <input id="input" autocomplete="off" /><button>Send</button>
+        </form>
+        <script src="/socket.io/socket.io.js"></script>
+        <script>
+        
+          const socket = io();
+        
+          const form = document.getElementById('form');
+          const input = document.getElementById('input');
+          const messages = document.getElementById('messages');
+        
+          form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (input.value) {
+              // const clientOffset = `${socket.id}-${counter++}`;
+              socket.emit('chat message', input.value);
+              input.value = '';
+            }
+          });
+        
+          socket.on('chat message', (msg) => {
+            const item = document.createElement('li');
+            item.textContent = msg;
+            messages.appendChild(item);
+            window.scrollTo(0, document.body.scrollHeight);
+            // socket.auth.serverOffset = serverOffset;
+          });
+        
+          // Add this block to handle messages sent from the server to be displayed on the board
+          // socket.on('display message', (msg) => {
+          //   const item = document.createElement('li');
+          //   item.textContent = msg;
+          //   messages.appendChild(item);
+          //   window.scrollTo(0, document.body.scrollHeight);
+          // });
+        </script>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const loadEl = document.querySelector('#load');
+        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+        // // The Firebase SDK is initialized and available here!
+        //
+        // firebase.auth().onAuthStateChanged(user => { });
+        // firebase.database().ref('/path/to/ref').on('value', snapshot => { });
+        // firebase.firestore().doc('/foo/bar').get().then(() => { });
+        // firebase.functions().httpsCallable('yourFunction')().then(() => { });
+        // firebase.messaging().requestPermission().then(() => { });
+        // firebase.storage().ref('/path/to/ref').getDownloadURL().then(() => { });
+        // firebase.analytics(); // call to activate
+        // firebase.analytics().logEvent('tutorial_completed');
+        // firebase.performance(); // call to activate
+        //
+        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+
+        try {
+          let app = firebase.app();
+          let features = [
+            'auth', 
+            'database', 
+            'firestore',
+            'functions',
+            'messaging', 
+            'storage', 
+            'analytics', 
+            'remoteConfig',
+            'performance',
+          ].filter(feature => typeof app[feature] === 'function');
+          loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
+        } catch (e) {
+          console.error(e);
+          loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
+        }
+      });
+    </script>
+  </body>
+</html>
