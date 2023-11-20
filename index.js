@@ -1,18 +1,18 @@
 const express = require('express');
-const { createServer } = require('http');
-const { join } = require('path');
+const { createServer } = require('node:http');
+const { join } = require('node:path');
 const { Server } = require('socket.io');
 const sqlite3 = require('sqlite3');
 const { open } = require('sqlite');
-const os = require('os');
-const cluster = require('cluster');
+const { availableParallelism } = require('node:os');
+const cluster = require('node:cluster');
 const { createAdapter, setupPrimary } = require('@socket.io/cluster-adapter');
 
 if (cluster.isPrimary) {
-  const numCPUs = os.cpus().length;
+  const numCPUs = availableParallelism();
   for (let i = 0; i < numCPUs; i++) {
     cluster.fork({
-      PORT: 3000 + i,
+      PORT: 3000 + i
     });
   }
 
@@ -22,7 +22,7 @@ if (cluster.isPrimary) {
 async function main() {
   const db = await open({
     filename: 'chat.db',
-    driver: sqlite3.Database,
+    driver: sqlite3.Database
   });
 
   await db.exec(`
@@ -36,50 +36,47 @@ async function main() {
   const app = express();
   const server = createServer(app);
   const io = new Server(server, {
-    connectionStateRecovery: {}, // Check if this is needed for your use case
-    adapter: createAdapter(),
+    connectionStateRecovery: {},
+    adapter: createAdapter()
   });
 
   app.get('/', (req, res) => {
     res.sendFile(join(__dirname, 'index.html'));
   });
 
-  io.on('connection', (socket) => {
-    // socket.emit('recovery');
-
-    socket.on('chat message', async (msg) => {
-      // Process the message if needed
-
-      // Send the original message back to the sender
-      // io.to(socket.id).emit('chat message', msg);
-
-      // await db.run('INSERT INTO messages (client_offset, content) VALUES (?, ?)', [
-      //   clientOffset,
-      //   msg,
-      // ]);
-
-      io.emit('chat message', msg);
+  io.on('connection', async (socket) => {
+    socket.on('chat message', async (msg, clientOffset, callback) => {
+      let result;
+      try {
+        result = await db.run('INSERT INTO messages (content, client_offset) VALUES (?, ?)', msg, clientOffset);
+      } catch (e) {
+        if (e.errno === 19 /* SQLITE_CONSTRAINT */ ) {
+          callback();
+        } else {
+          // nothing to do, just let the client retry
+        }
+        return;
+      }
+      io.emit('chat message', msg, result.lastID);
+      callback();
     });
 
-    // socket.on('recovery', async () => {
-    //   if (!socket.recovered) {
-    //     try {
-    //       await db.each(
-    //         'SELECT id, content FROM messages WHERE id > ?',
-    //         [socket.handshake.auth.serverOffset || 0],
-    //         (_err, row) => {
-    //           socket.emit('chat message', row.content, row.id);
-    //         }
-    //       );
-    //     } catch (e) {
-    //       console.error(e);
-    //     }
-    //     socket.recovered = true;
-    //   }
-    // });
+    if (!socket.recovered) {
+      try {
+        await db.each('SELECT id, content FROM messages WHERE id > ?',
+          [socket.handshake.auth.serverOffset || 0],
+          (_err, row) => {
+            socket.emit('chat message', row.content, row.id);
+          }
+        )
+      } catch (e) {
+        // something went wrong
+      }
+    }
   });
 
-  const port = process.env.PORT || 8080;
+  const port = process.env.PORT;
+
   server.listen(port, () => {
     console.log(`server running at http://localhost:${port}`);
   });
