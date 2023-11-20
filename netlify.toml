@@ -1,0 +1,5 @@
+[[redirects]]
+  from = "/socket.io/*"
+  to = "ws://localhost:3000/socket.io/*"
+  status = 101
+  force = true
