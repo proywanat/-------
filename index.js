@@ -1,5 +1,5 @@
 const express = require('express');
-const { createServer } = require('node:http');
+const { createServer } = require('http');
 const { join } = require('node:path');
 const { Server } = require('socket.io');
 const sqlite3 = require('sqlite3');
@@ -7,7 +7,7 @@ const { open } = require('sqlite');
 const { availableParallelism } = require('node:os');
 const cluster = require('node:cluster');
 const { createAdapter, setupPrimary } = require('@socket.io/cluster-adapter');
-const cors = require('cors'); // เพิ่มบรรทัดนี้
+const cors = require('cors');
 
 if (cluster.isPrimary) {
   const numCPUs = availableParallelism();
@@ -35,11 +35,10 @@ async function main() {
   `);
 
   const app = express();
-  
-  // เพิ่ม middleware cors ด้านล่างนี้
-  app.use(cors());
+  app.use(cors()); // เพิ่ม middleware cors ด้านล่างนี้
 
-  const server = createServer(app);
+  const server = createServer(app).listen(process.env.PORT || 3000); // เปลี่ยนบรรทัดนี้
+
   const io = new Server(server, {
     connectionStateRecovery: {},
     adapter: createAdapter()
@@ -50,13 +49,34 @@ async function main() {
   });
 
   io.on('connection', async (socket) => {
-    // โค้ดที่เหลือเป็นเหมือนเดิม
-  });
+    socket.on('chat message', async (msg, clientOffset, callback) => {
+      let result;
+      try {
+        result = await db.run('INSERT INTO messages (content, client_offset) VALUES (?, ?)', msg, clientOffset);
+      } catch (e) {
+        if (e.errno === 19 /* SQLITE_CONSTRAINT */ ) {
+          callback();
+        } else {
+          // nothing to do, just let the client retry
+        }
+        return;
+      }
+      io.emit('chat message', msg, result.lastID);
+      callback();
+    });
 
-  const port = process.env.PORT;
-
-  server.listen(port, () => {
-    console.log(`server running at http://localhost:${port}`);
+    if (!socket.recovered) {
+      try {
+        await db.each('SELECT id, content FROM messages WHERE id > ?',
+          [socket.handshake.auth.serverOffset || 0],
+          (_err, row) => {
+            socket.emit('chat message', row.content, row.id);
+          }
+        )
+      } catch (e) {
+        // something went wrong
+      }
+    }
   });
 }
 
