@@ -72,7 +72,8 @@
   <script>
     let counter = 0;
   
-    const socket = io({
+    const socket = io('https://gilded-crepe-6c7288.netlify.app',{
+      transports: ["websocket"],
       ackTimeout: 10000,
       retries: 3,
       auth: {
