@@ -1,5 +1,5 @@
 [[redirects]]
   from = "/socket.io/*"
-  to = "ws://localhost:3000/socket.io/*"
+  to = "ws://https://main--gilded-crepe-6c7288.netlify.app/socket.io/*"
   status = 101
   force = true
